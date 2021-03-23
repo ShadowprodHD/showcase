@@ -1,0 +1,68 @@
+version: '3.7'
+
+services:
+  # ==============================================
+  # opdracht Containers
+  # ==============================================
+
+  # Apache / PHP
+  opdracht_web:
+    build:
+      context: ./
+      dockerfile: ./.docker/run/web.dockerfile
+    container_name: opdracht_web
+    hostname: opdracht.localhost
+    volumes:
+      #      - ./.docker/ssh:/root/profile
+      - ./.docker/conf/opdracht_apache/opdracht.conf:/etc/apache2/sites-available/opdracht.conf
+      - ./.docker/conf/opdracht_php/opdracht.ini:/usr/local/etc/php/conf.d/opdracht.ini
+      - ./.docker/logs/opdracht_apache:/var/log/apache2
+      - ./:/var/www/html/
+    ports:
+      - "88:80"
+    links:
+      - opdracht_db
+
+  # MySQL
+  opdracht_db:
+    image: mariadb:10.3.11
+    container_name: opdracht_db
+    restart: always
+    volumes:
+      - ./.docker/data/opdracht_mysql/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - opdracht_db_volume:/var/lib/mysql
+      - ./.docker/logs/opdracht_mysql:/var/log/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: "JXb85qDARRAqXtakXTFS"
+      MYSQL_DATABASE: "opdracht_db"
+      MYSQL_USER: "opdracht_db"
+      MYSQL_PASSWORD: "opdracht_db"
+    command: mysqld --sql_mode=""
+    ports:
+      - "3308:3306"
+
+  # phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: opdracht_phpmyadmin
+    hostname: opdracht-cms-pma.localhost
+    restart: always
+    volumes:
+      - ./.docker/conf/opdracht_phpmyadmin/phpmyadmin_config.php:/etc/phpmyadmin/config.user.inc.php
+      - ./.docker/data/opdracht_phpmyadmin:/sessions
+    ports:
+      - "82:80"
+    environment:
+      PMA_ARBITRARY: "1"
+      PMA_HOST: "opdracht_db"
+      PMA_USER: "opdracht_db"
+      PMA_PASSWORD: "opdracht_db"
+    links:
+      - opdracht_db
+
+
+# ==============================================
+# Volumes
+# ==============================================
+volumes:
+  opdracht_db_volume:
